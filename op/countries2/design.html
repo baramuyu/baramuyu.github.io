@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<head>
+    <style  <style type="text/css">
+	.node {
+		/*fill: white;*/
+		opacity: .8;
+		stroke: white ;
+		stroke-width: 6px;
+	}
+	.node:hover {
+		stroke: gray ;
+		opacity: 1;
+	}
+	.text{
+		fill: black;
+		stroke-width: 0px;
+		font-size: 1.1em;
+		font-family: sans-serif;
+		opacity: 1;
+	}
+    input[type='range'] {
+        -webkit-appearance: none;
+        box-shadow: inset 0 0 5px #333;
+        background-color: #999;
+        height: 5px;
+        width: 250px;
+        vertical-align: 4px;
+    }
+    input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none !important;
+        border-radius: 20px;
+        background-color: #FFF;
+        box-shadow:inset 0 0 10px rgba(000,000,000,0.5);
+        border: 1px solid #999;
+        height: 20px;
+        width: 20px;
+    } 
+	.axis path,
+	.axis line {
+	    fill: none;
+	    stroke: black;
+	    shape-rendering: crispEdges;
+	}
+	.axis text {
+	    font-family: sans-serif;
+	    font-size: 14px;
+	} 
+	.quad_text {
+	    font-family: sans-serif;
+	    font-size: 1.1em;
+	    fill: white;
+	    font-weight: bold;	
+	}
+	.rect{
+		fill: none;
+		stroke-width:5;
+		stroke: none;
+		opacity: 0.7;
+		fill: transparent;
+	}
+  
+    </style>
+    <link rel="stylesheet" type="text/css" href="../mycss.css">
+</head>
+<body align="center">
+
+	<h1>World Trade Cargo & Logistics Planning</h1>
+  	Country Key&#9658;<select id="selectKeys" >	</select>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	Year Slider&#9658;
+  	<label id="yearmin" value="">1995</label>
+	<input type="range" name="points" min="1995" max="2012" step="1" value="2012" id="slider-time" oninput="slider_changed(this.value)">
+	<label id="yearmax" value="">2012</label>
+	</br>
+	<h2 id="subtitle">Albania's top partners in 2012</h2>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script>
+
+var selDataset = []; //filtered data by year
+var dataset = [];
+var targetData = []; //top partners of country key
+var gselYear = []; //selected year
+var gselCountryid = []; //country ID of selected Key
+var gselCountryName = []; //country name of selected Key
+var init = true;
+var indexed_data = [] //filtered data by year
+var indexed_targetData = [] //filtered data by year
+var gcapita_max = [];
+var gtexport_max = [];
+
+var margin = {top: 10, bottom: 10, left: 10, right: 10};
+var width = 1200 - margin.left - margin.right;
+var height = 800 - margin.top - margin.bottom;
+
+var color = d3.scale.category10(); //color
+
+var xScale = d3.scale.linear();
+var yScale = d3.scale.linear();
+
+var xAxis = d3.svg.axis()
+var yAxis = d3.svg.axis()
+
+var LifeScale = d3.scale.linear();
+
+var graph = {nodes: [], links: []};
+
+var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+
+var quadrant1 = svg.insert("path"); //Light Blue
+var quadrant2 = svg.insert("path"); //Blue
+var quadrant3 = svg.insert("path"); //Light Green
+var quadrant4 = svg.insert("path"); //Green
+
+var quadrant1_text = svg.insert("g");
+var quadrant2_text = svg.insert("g");
+var quadrant3_text = svg.insert("g");
+var quadrant4_text = svg.insert("g");
+
+var quadrant_color = {q1:"#A4A4A4", q2: "#6E6E6E", q3:"#BDBDBD", q4:"#A4A4A4"}
+
+
+// Generate the force layout
+var force = d3.layout.force()
+    .size([width, height])
+    .on("tick", tick)
+    .on("start", function(d) {}) //animation
+    .on("end", function(d) {}) //animation
+
+//SETTING GRAPH.NODES
+graph.nodes = d3.range(10).map(function() {return { cat: 1 }; })
+
+//DATA LOAD
+d3.json("../data/countries_1995_2012.json", function(error, data){
+
+		//mapping
+		data.map(function(d,i){
+		    for (i = 0; i < d.years.length; i++) {
+            //Target and Source
+            var tmp_links = [];
+            for (j = 0; j < d.years[i].top_partners.length; j++) {
+                tmp_links.push({
+                	"source": d.country_id, 
+                	"target": d.years[i].top_partners[j].country_id,
+                	"total_export": d.years[i].top_partners[j].total_export
+                });
+            }
+	        var dat = {
+	          name: d.name,
+	          continent: d.continent,
+	          gdp: d.years[i].gdp,
+	          life_expectancy: d.years[i].life_expectancy,
+	          population: d.years[i].population,
+	          year: d.years[i].year,
+              latitude: d.latitude,
+              longitude: d.longitude,
+              country_id: d.country_id,
+              top_partners: tmp_links
+	        };
+            dataset.push(dat);
+		    }
+
+		});
+
+	    force.nodes(graph.nodes)
+	      .start();
+
+	    create_databyyear();
+
+		//gselCountryid = indexed_data[2012][0].country_id //for filter by default country
+		var tmp = indexed_data[2012].sort(function(a, b){ return d3.ascending(a["name"],b["name"])});
+		gselCountryid = tmp[0].country_id
+
+	    find_maxmin();
+
+		slider_changed("2012"); //1
+
+		setting_dropdown(); //2
+
+		create_quadrants();
+	
+	    controlfunc(); //3
+
+}); //End json loading
+
+function controlfunc(){
+
+	setting_axis();
+
+	if(init){
+		create_graph();
+		init = false;
+	}else
+		graph_update_growth();
+
+	change_subtitle();
+}
+
+function create_targetData(){
+	//initialize
+	//targetData = [];	
+	var seltargets = [];
+	var total_export =[];
+
+	//selected country --Source
+	selDataset.forEach(function(d){
+		if(d.country_id == gselCountryid){
+			d.top_partners.forEach(function(e){ 
+				seltargets.push(e.target);
+				total_export.push({target: e.target, value: e.total_export})
+			})
+			gselCountryName = d.name //save to global
+		}
+	})
+	//console.log(seltargets)
+	//
+	targetData = selDataset.filter(function(d){
+		return seltargets.indexOf(d.country_id) > -1;
+	})
+	targetData.forEach(function(d){
+		total_export.forEach(function(e){
+			if(d.country_id == e.target)
+				d.total_export = e.value;
+		})
+	})
+	targetData = targetData.sort(function(a, b) {
+        return d3.descending(a["total_export"], b["total_export"]);
+    });
+
+    return targetData;
+};
+
+function find_maxmin(){
+	var backup_data = selDataset
+	var capita_max = [];
+	var texport_max = [];
+	var y = 1995
+    while (y <= 2012){
+    	selDataset = indexed_data[y];
+    	targetData = create_targetData();
+    	indexed_targetData[y] = targetData;
+
+		capita_max.push(d3.max(targetData.map(function(d) { return d.gdp/d.population; })));
+		texport_max.push(d3.max(targetData.map(function(d) { return d.total_export; })))
+		y++;
+    }
+    gcapita_max = d3.max(capita_max);
+    gtexport_max = d3.max(texport_max);
+
+    selDataset = backup_data;
+}
+
+function setting_axis(){
+
+	xScale //gdp / population
+      .domain([0,gcapita_max])
+      .range([95, width-130]);
+    yScale
+      .domain([0,gtexport_max])
+      .range([height-100, 50]);
+
+    //Define X axis
+    xAxis
+      .scale(xScale)
+      .orient("bottom")
+      .ticks(10)
+      .tickFormat(d3.format("s"));
+    
+    //Define Y axis
+    yAxis
+      .scale(yScale)
+      .orient("left")
+      .ticks(10)
+      .tickFormat(d3.format("s"));
+
+	svg.selectAll(".axis").remove();
+
+    //Create X axis
+	svg.append("g")
+		.attr("class", "axis")
+		.attr("transform", "translate(0," + (height - 70) + ")")
+	    .call(xAxis);
+	
+	//Create Y axis
+	svg.append("g")
+	    .attr("class", "axis")
+	    .attr("transform", "translate(" + 70 + ",0)")
+	    .call(yAxis); 
+
+}
+
+//Use Rect instead of Path
+function create_quadrants(){
+	quadrant1 //top left
+		.attr("id", quadrant1)
+		.attr("d","M 70 360 H 585 V 20 H 73 V 360")
+		.attr("stroke",quadrant_color.q1)
+		.attr("stroke-width",5)
+		.attr("fill",quadrant_color.q1)
+
+	quadrant2 //top right
+		.attr("id", quadrant2)
+		.attr("d","M 1080 360 H 590 V 20 H 1077 V 360")
+		.attr("stroke",quadrant_color.q2)
+		.attr("stroke-width",5)
+		.attr("fill",quadrant_color.q2)
+
+	quadrant3 //bottom left
+		.attr("id", quadrant3)
+		.attr("d","M 70 365 H 585 V 707 H 73 V 365")
+		.attr("stroke",quadrant_color.q3)
+		.attr("stroke-width",5)
+		.attr("fill",quadrant_color.q3)
+
+	quadrant4 //bottom right
+		.attr("id", quadrant4)
+		.attr("d","M 1080 365 H 590 V 707 H1077 V365")
+		.attr("stroke",quadrant_color.q4)
+		.attr("stroke-width",5)
+		.attr("fill",quadrant_color.q4)
+
+	quadrant1_text
+		.attr("transform", function(d) {return "translate("+320+","+320+")"; })
+		.append("text")
+		.attr("class","quad_text")
+		.text("High Export / Low Margin")
+
+	quadrant2_text
+		.attr("transform", function(d) {return "translate("+630+","+320+")"; })
+		.append("text")
+		.attr("class","quad_text")
+		.text("High Export / Hign Margin")
+
+	quadrant3_text
+		.attr("transform", function(d) {return "translate("+320+","+420+")"; })
+		.append("text")
+		.attr("class","quad_text")
+		.text("Low Export / Low Margin")
+
+	quadrant4_text
+		.attr("transform", function(d) {return "translate("+630+","+420+")"; })
+		.append("text")
+		.attr("class","quad_text")
+		.text("Low Export / Hign Margin")
+
+}
+
+function graph_update_growth() { //(3)
+
+	//console.log("************************")
+	//console.log("---graph.nodes(old)---------")
+	graph.nodes.forEach(function(d){console.log(d.cat)})
+
+	force.stop();
+
+	//initialize flag for old/new element
+	graph.nodes.forEach(function(d){
+			d.upd = false;
+	})
+
+	var flag = false;
+	var new_target = targetData.slice(0);
+	var cup = [];
+
+	targetData.forEach(function(e,j){ //Attention! Don't update d.cat. because it's Key.
+		graph.nodes.forEach(function(d, i) {
+			if(targetData[j].name == d.cat){
+			    d.x = xScale(targetData[j].gdp / targetData[j].population);
+			    d.y = yScale(targetData[j].total_export);
+			    d.cont = targetData[j].continent;
+			    d.upd = true;
+			    
+			    //removing updated top partners for later
+			    new_target.forEach(function(f,k){
+			    	if(targetData[j].name == f.name)
+			    		new_target.splice(k, 1)
+			    })
+	    	}
+		})		
+	})
+
+	//console.log("---removedata---------");
+	for (var i = 9; i >= 0; i--) {
+		if(!graph.nodes[i].upd){
+			//console.log(graph.nodes[i].cat)
+			graph.nodes.splice(i,1)
+		}
+	};
+	graph.nodes.forEach(function(d, i) {
+		if(!d.upd){
+			graph.nodes.splice(i,1)
+			//console.log(d.cat)
+		}
+	})
+
+	//add new top partners
+	new_target.forEach(function(d){
+		graph.nodes.push({
+				cat: d.name,
+			    x: xScale(d.gdp / d.population),
+			    y: yScale(d.total_export),
+				cont: d.continent,
+			    upd: true
+		})
+	})
+
+	//log
+	// console.log("---new_target----------")
+	// new_target.forEach(function(d){console.log(d.name)})
+	// console.log("---graph.nodes(new)-------")
+	// graph.nodes.forEach(function(d){console.log(d.cat)})
+	// console.log("---targetData---------")
+	// targetData.forEach(function(d){console.log(d.name)})
+
+
+	graph_update(500);
+}
+
+function create_graph(){
+	graph.nodes.forEach(function(d, i) {
+		d.x = xScale(targetData[i].gdp / targetData[i].population);
+		d.y = yScale(targetData[i].total_export);
+		d.cont = targetData[i].continent;
+		d.cat = targetData[i].name;
+	})
+
+	var node = svg.selectAll(".node")
+	    .data(graph.nodes,function(d){return d.cat})
+	    .enter()
+	    .append("g").attr("class", "node")
+	    .attr("id", function(d) { return d.cat })
+	    .attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; });
+
+	var circle = node.append("circle")
+	    .attr("r", 20)
+	    .attr("fill",function(d){return color(d.cont)}); 
+
+	var text = node.append("text")
+			.attr("x", 0)
+			.attr("y", 4)
+			.attr("text-anchor","start")
+			.attr("class","text")
+			.attr("opacity",1)
+			.text(function(d){ return d.cat});
+
+	// text label for the x axis
+	svg.append("text")      
+	        .attr("x", width/2 )
+	        .attr("y", height-20 )
+	        .style("text-anchor", "middle")
+	        .attr("class","text")
+	        .attr("font-size","15px")
+	        .text("GDP/Population(GDP per Capita)");
+
+	// text label for the y axis
+	svg.append("text")
+			.attr("transform", "rotate(-90)")      
+	        .attr("x", 0 - (height / 2))
+	        .attr("y", 0 + 20 )
+	        .style("text-anchor", "middle")
+	        .attr("class","text")
+	        .attr("font-size","15px")
+	        .text("Export Amount");
+}
+
+function graph_update(duration) {
+
+	var node = svg.selectAll(".node")
+		.data(graph.nodes,function(d){return d.cat});
+	//console.log(node[0].forEach(function(d){return d}))
+
+	//update old elements
+	node.transition().duration(duration)
+	    .attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; })
+	    .attr("status","update")
+	    .style("fill-opacity", 1)
+
+	//enter
+	var new_node = node
+		.enter().append("g")
+		.attr("class", "node")
+	    .attr("transform", function(d) {return "translate("+d.x+","+850+")"; })
+	    .attr("status","enter")
+	    .attr("id",function(d){ return d.cat;})
+	    .style("fill-opacity", 0)
+	
+	new_node.append("circle")
+	    .attr("r", 20)
+	    .attr("fill",function(d){return color(d.cont)}); 
+
+	new_node.append("text")
+		.attr("x", 0)
+		.attr("y", 4)
+		.attr("text-anchor","start")
+		.attr("class","text")
+		.text(function(d){ return d.cat});
+
+	new_node.transition()
+	      .duration(duration)
+	      .style("fill-opacity", 1)
+	      .attr("transform", function(d) {return "translate("+d.x+","+d.y+")"; })
+
+  // EXIT
+  // Remove old elements as needed.
+  node.exit()
+     .transition()
+      .duration(duration)
+      .style("fill-opacity", 0)
+	  .attr("transform", function(d) {return "translate("+d.x+","+850+")"; })
+      .remove();
+}
+
+
+function keyChanged(){
+
+	gselCountryid = d3.event.target.value
+	find_maxmin();
+	
+	controlfunc();
+}
+
+function create_databyyear(){
+    var tmpdata = []
+
+    var y = 1995
+    while (y <= 2012){
+    	tmpdata = [];
+	    dataset.map(function(d,i){
+	        if (d.year == y)
+	            tmpdata.push(d);
+	    });
+
+	    indexed_data[y] = tmpdata;
+	    y++;
+	}
+}
+
+//Range
+function slider_changed(newVal){
+    var tmpdata = []
+
+    //preserve in Global
+    gselYear = newVal;
+
+    targetData = indexed_targetData[gselYear]
+
+    if(!init)
+    	controlfunc();
+};
+
+function change_subtitle(){
+	var subtitle = d3.select("body").select("h2")
+
+	subtitle
+		.text(gselCountryName +"'s top partners in "+ gselYear)
+		//.text("Angola's top partners in 2012");
+}
+
+function setting_dropdown(){
+	var dropDown = d3.select("#selectKeys")
+			.on("change", keyChanged);
+
+	var options = dropDown.selectAll("option")
+        	.data(indexed_data[2012].sort(function(a, b){ return d3.ascending(a["name"],b["name"])}))
+        	.enter()
+        	.append("option");
+
+    options
+    	.text(function (d) { return d.name; })
+       	.attr("value", function (d) { return d.country_id; });
+};
+
+function tick(e) {
+};
+
+    </script> 
+  </body>
+</html>

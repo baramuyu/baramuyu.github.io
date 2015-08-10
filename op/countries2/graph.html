@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<head>
+	<style>
+
+	.link {
+	  stroke: steelblue;
+	  stroke-opacity: .4;
+	  fill: none;
+	  pointer-events: none;
+	  stroke-width: 1;
+	}
+
+	.node {
+		fill: white;
+		stroke: #000;
+		stroke-width: .9px;
+	}
+
+	.node:hover {
+		fill: black;
+	}
+	.node:hover,
+	.node--colored {
+	  font-weight: 700;
+	}
+
+	.node--colored {
+	  fill: #2ca02c;
+	}
+
+	.link--colored {
+	  stroke-opacity: 1;
+	  stroke-width: 1.2;
+	}
+
+	.link--colored {
+	  stroke: #000066;
+	}
+	.text{
+	fill: black;
+	stroke-width: 0px;
+	font-size: .9em;
+	}
+	</style>
+	<link rel="stylesheet" type="text/css" href="../mycss.css">
+</head>
+<body>
+ <table>
+ 	
+		<tr>
+			<td>Layout:</td>
+			<td><label><input type="radio" name="layout" value="force" checked> Nodes</label>
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td style="text-align: right;">&#9658;</td>
+			<td>Rankings:</td>
+			<td><label><input type="radio" name="ranking" value="norank" checked> None</label>
+			</td>
+			<td><label><input type="radio" name="ranking" value="rank" > Rankings</label>
+				&nbsp;&nbsp;&nbsp;
+			</td>
+			<td>Key:<select id="selectKeys" onchange="keyChanged(this);">
+			<option value="gdp" selected="selected"> GDP</option>
+			<option value="population" > Population</option>
+			<option value="life_expectancy" > Life_expectancy</option>
+			</select>
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td style="text-align: right;">&#9658;</td>
+			<td>Scatterplot:</td>
+			<td><label><input type="radio" name="ranking" value="growth"> Population/GDP</label>
+			</td>
+			<td><label><input type="radio" name="ranking" value="location" > Longitude/Latitude</label>
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td><label><input type="radio" name="layout" value="circular"> Circular</label> 
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td style="text-align: right;">&#9658;</td>
+			<td>Sortkey:</td>
+			<td><label><input type="radio" name="circle" value="cir_gdp" checked> GDP</label>
+			</td>
+			<td><label><input type="radio" name="circle" value="cir_pop" > Population</label>
+		</tr>
+		<tr>
+			<td></td>
+			<td style="text-align: right;">&#9658;</td>
+			<td>Grouped:</td>
+			<td><label><input type="radio" name="circle2" value="cir_none" checked> None </label>
+			</td>
+			<td><label><input type="radio" name="circle2" value="cir_grouped"> By Continent </label>
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td><label><input type="radio" name="layout" value="grouped"> Grouped</label> 
+			</td>
+		</tr>
+		<tr>
+			<td></td>
+			<td style="text-align: right;">&#9658;</td>
+			<td>Shape:</td>
+			<td><label><input type="radio" name="group" value="gr_none" checked> None </label>
+			</td>
+			<td><label><input type="radio" name="group" value="gr_horizontal" > Horizontal </label>
+			</td>
+			<td><label><input type="radio" name="group" value="gr_pie" > Pie </label>
+		</tr>
+ </table>
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<script src="graph.js"></script>
+	</body>
+</html>
