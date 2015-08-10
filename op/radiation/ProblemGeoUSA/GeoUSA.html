@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Solar Radiation Data</title>
+</head>
+
+
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<link rel="stylesheet" type="text/css" href="../../mycss.css">
+<style type="text/css">
+    svg{
+        /*background: #eeeeee;*/
+    }
+
+    .country{
+        fill: #ccc;
+        stroke:  steelblue;
+    }
+
+    text{
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 9pt;
+        /*font-weight: lighter;*/
+    }
+
+    .axis text {
+        font: 10px sans-serif;
+    }
+
+    .axis line,
+    .axis path {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+
+    .station{
+        opacity: .5;
+        stroke: #fff;
+    }
+    .station.hasData{
+        fill: steelblue ;
+        stroke: blue ;
+        stroke-width: 3px;
+        opacity: .3;
+    }
+    .hourLine{
+        fill:none;
+        stroke:steelblue;
+    }
+    .brush .extent{
+        fill:gray;
+        opacity: .3;
+    }
+    .tooltip {   
+        line-height: 1;
+        font-weight: normal;
+        padding: 6px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+    }
+</style>
+
+<h1>Solar Radiation Data</h1>
+<h3>This visualization uses data from the National Solar Radiation Database. 
+    The database contains solar radiation measures</br> (in other words: the amount of sunlight) of over 1,000 locations within the US. From 1961 until 2010, </br>the measures are recorded in an hourly resolution for many, but not all, stations. </h3>
+
+<table>
+    <tr><td><div id="vis"></div></td><td><div id="detailVis"></div></td></tr>
+</table>
+
+
+<script src="GeoUSA.js"></script>
+
+</body>
+</html>

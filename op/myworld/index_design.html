@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>MyWorld Data</title>
+
+    <!-- ADD Libraries-->
+    <script src="libs/d3/d3.min.js" charset="utf-8"></script>
+    <script src="libs/jquery/jquery-2.1.1.min.js" charset="utf-8"></script>
+    <script src="libs/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+
+
+    <!--Stylesheets-->
+    <link rel="stylesheet" type="text/css" href="libs/bootstrap/css/bootstrap.min.css">
+
+    <!-- Get some nice font-->
+    <link href='http://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+
+    <!-- vis classes-->
+    <script src = "js/priovis.js"></script>
+    <script src = "js/agevis.js"></script>
+    <script src = "js/countvis.js"></script>
+    <script src = "js/radar.js"></script>
+    <script src = "js/RadarChart.js"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+
+    <!-- stylesheet-->
+    <link rel="stylesheet" type="text/css" href="css/myStyle.css">
+    <link rel="stylesheet" type="text/css" href="../mycss.css">
+    <style  <style type="text/css">
+    .button a{
+        height:40px;
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MyWorld 2015 Data Visualization</h1>
+
+        <div class="row">
+            <div class="col-md-8 col-sm-12">
+               <p> The following visualization shows you the votes for MyWorld 2015. You can select a time range to see changes in the distribution of votes und distribution of age of the voters.</p>
+            </div>
+
+        </div>
+
+        <div class="row">
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-primary" id="fitInBtn"> <span class="glyphicon glyphicon-resize-horizontal"></span> reset zoom </button>
+            </div>
+
+            <div class="col-md-8">
+                <b>current brush:</b> <span id="brushInfo"></span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9" id="countVis"></div>
+            <div class="col-md-3" id="ageVis">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-14" id="radar">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12" id="prioVis">
+            </div>
+        </div>
+    </div>
+
+<script>
+$(function(){ // this function is called after the HTML document is fully loaded
+
+    // variables keeping global knowledge of the data
+    var allData = [];
+    var metaData = {};
+    var width = 1500;
+    var height = 1500;
+
+    var dateFormatter = d3.time.format("%Y-%m-%d"); // see: https://github.com/mbostock/d3/wiki/Time-Formatting
+
+    var initVis = function(){    // call this function after Data is loaded, reformatted and bound to the variables
+
+        var MyEventHandler = new Object();
+
+        //TODO: Instantiate all Vis Objects here
+        var svg_count = d3.select("#countVis").append("svg")
+                .attr("width", 750)
+                .attr("height", 350);
+
+        var svg_age = d3.select("#ageVis").append("svg")
+                .attr("width", 230)
+                .attr("height", 330);
+
+        var svg_prio = d3.select("#prioVis").append("svg")
+                .attr("width", 750)
+                .attr("height", 540);
+
+        var svg_radar = d3.select("#radar").append("svg")
+                .attr("width", 750)
+                .attr("height", 900);
+
+        // TODO: bind the eventHandler to the Vis Objects
+        // events will be created from the CountVis object (nothing to do here)
+        // events will be consumed by the PrioVis and AgeVis object (binding should happen here)
+        CountVis = new CountVis(svg_count, allData, metaData, MyEventHandler);
+        AgeVis = new AgeVis(svg_age, allData, metaData);
+        PrioVis = new PrioVis(svg_prio, allData, metaData);
+        RadarVis = new RadarVis(svg_radar, allData, metaData);
+
+        $(MyEventHandler).bind("selectionChanged", function(event, selDateStart, selDateEnd){
+            var startDate = dateFormatter(new Date(selDateStart))
+            var endDate = dateFormatter(new Date(selDateEnd))
+            var currentBrush = d3.select("#brushInfo") //current brush
+            if(startDate == endDate){
+                currentBrush
+                    .text(""); 
+                return;
+            }
+
+            AgeVis.onSelectionChange(selDateStart,selDateEnd);
+            PrioVis.onSelectionChange(selDateStart,selDateEnd);
+            RadarVis.onSelectionChange(selDateStart,selDateEnd);
+
+            currentBrush
+                .text(dateFormatter(new Date(selDateStart))+"~"+dateFormatter(new Date(selDateEnd)))
+
+        });
+
+    }
+
+    // call this function after both files are loaded -- error should be "null" if no error
+    var dataLoaded = function (error, _allData, _metaData) {
+
+        if (!error) {
+
+            //data flatten
+            allData = _allData.map(function (d) {
+                        var res = {
+                            time: dateFormatter.parse(d.day), //should be a Date object
+                            count: parseInt(d["count(*)"]), //number of all votes
+                            prios: [], //array of number of votes per priority -> array length =16
+                            ages: [] //array counts of votes per age 0-99
+                        };
+
+                        res.prios = [];
+                        for (var i = 0; i <= 15; i++) {
+                            res.prios.push(d["sum(p"+ i +")"]) //  [d["sum(p0)"], d["sum(p1)"], d["sum(p2)"],...]
+                        };
+
+                        // set every value to "0")
+                        res.ages = d3.range(0,99). map(function(){return 0;}) // This is ONE way to create an array of length 100
+
+                        d.age.forEach(function(e, i){
+                            res.ages[e.age] += e["count(*)"]; 
+                        })
+
+                        return res;
+                    }
+            )
+
+            metaData = _metaData;
+
+            initVis();
+
+        }
+    }
+
+    var startHere = function(){
+
+        //TODO: load data here and call "dataLoaded" afterwards
+        // Hint: http://giscollective.org/d3-queue-js/
+        queue()
+            .defer(d3.json, 'data/perDayData.json') // perdaydata
+            .defer(d3.json, 'data/MYWorld_fields.json') // metadata
+            .await(dataLoaded) // calling function
+
+        // bind reset zoom button to a function (-- ONLY FOR BONUS --)
+        d3.select("#fitInBtn").on("click", function() {
+            // TODO: -- ONLY FOR BONUS --
+            console.log("push!")
+            d3.select("#zooming")
+                .attr("transform", "translate(100,20)scale(1,1)")
+        });
+
+
+    }
+
+    //actually procedure starts from here
+    startHere();
+    
+})
+</script>
+</body>
+</html>

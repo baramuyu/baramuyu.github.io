@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<!-- <script type="text/javascript" src="../jquery-1.11.0.min.js"></script> -->
+<script src="../libs/FileSaver.js"></script>
+
+<div id="vis"></div>
+
+
+<script>
+
+var test
+    d3.json("../data/allData2003_2004.json",function(error,data){
+        //console.log(data);
+
+        var allDates = [];
+        var timeParser = d3.time.format("%b %-d, %Y %X %p");
+        var monthNameFormat = d3.time.format("%b");
+        var hourlyFormat = d3.time.format("%X %p");
+
+        var aggregateMap = {}
+
+        for (var station in data) {
+            station = station.toString();
+            if (data.hasOwnProperty(station)) {
+                data[station].forEach(function(d){
+
+                    var month = monthNameFormat(timeParser.parse(d["date"]));
+                    var hour = hourlyFormat(timeParser.parse(d["date"]));
+
+                    var monthlist = aggregateMap[month]
+
+                    if(monthlist==undefined)
+                        monthlist = {}; // NOT []
+
+                    var stationlist = monthlist[station]
+
+                    if(stationlist==undefined){
+                        stationlist = {
+                            "sum": 0,
+                            "hourly": {}
+                        };
+                    }
+
+                    var hourlist = stationlist["hourly"][hour]
+                    if(hourlist==undefined)
+                        stationlist["hourly"][hour] = 0;
+
+                    stationlist["hourly"][hour] += d.value;
+                    stationlist["sum"] += d.value;
+
+                    monthlist[station] = stationlist;
+
+                    aggregateMap[month]= monthlist
+
+                })
+            }
+        }
+
+        reducedDataSet = aggregateMap;
+        
+        saveToFile(reducedDataSet,"reducedMonthStationHour2003_2004.json")
+
+    })
+
+    var saveToFile = function(object, filename){
+        var blob, blobText;
+        blobText = [JSON.stringify(object, null, '\t')];
+        blob = new Blob(blobText, {
+            type: "text/plain;charset=utf-8"
+        });
+        saveAs(blob, filename);
+
+        console.log("finish!")
+    }
+
+</script>
+</body>
+</html>
