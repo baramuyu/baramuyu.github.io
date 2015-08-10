@@ -1,0 +1,70 @@
+body{
+    font-family: 'PT Sans', sans-serif;
+}
+/*for multi line*/
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+/*.tick line{
+  opacity: 0.2;
+}
+*/
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+
+/*for sankey*/
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+ 
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+ 
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+ 
+.link:hover {
+  stroke-opacity: .5;
+}
+
+.tooltip {   
+    line-height: 1;
+    font-weight: normal;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 2px;
+}
+
+.frame{
+    border-color: red;
+    border-width: 5px;
+}
+
+.county{
+    fill: #dffaff;
+    stroke:  lightgrey;
+}
+
+.station{
+    fill: steelblue;
+    opacity:  .7;
+}
